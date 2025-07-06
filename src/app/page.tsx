@@ -1,5 +1,4 @@
-import { signIn } from "next-auth/react";
-import { auth } from "~/server/auth";
+import { auth, signIn } from "~/server/auth";
 import { redirect } from "next/navigation";
 
 export default async function HomePage() {
@@ -152,7 +151,7 @@ export default async function HomePage() {
       <form
         action={async () => {
           "use server";
-          await signIn("google");
+          await signIn("google", { redirectTo: "/journal" });
         }}
       >
         <button

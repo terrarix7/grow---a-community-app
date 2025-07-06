@@ -12,6 +12,7 @@ import {
   SidebarProvider,
   SidebarInset,
 } from "~/components/ui/sidebar";
+import SignOut from "~/components/sign-out";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -58,8 +59,8 @@ function AppSidebar({ children }: { children: React.ReactNode }) {
           className="h-full w-64 border-r border-gray-200"
           collapsible="none"
         >
-          <SidebarContent className="bg-white">
-            <SidebarGroup>
+          <SidebarContent className="flex flex-col bg-white">
+            <SidebarGroup className="flex-1">
               <SidebarGroupContent>
                 <SidebarMenu>
                   {menuItems.map((item) => (
@@ -75,6 +76,9 @@ function AppSidebar({ children }: { children: React.ReactNode }) {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+            <div className="border-t border-gray-200 p-4">
+              <SignOut />
+            </div>
           </SidebarContent>
         </Sidebar>
         <SidebarInset>{children}</SidebarInset>
