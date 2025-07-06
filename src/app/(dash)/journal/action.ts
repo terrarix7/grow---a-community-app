@@ -15,11 +15,11 @@ export type JournalEntry = {
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user || !session.user.email) {
     redirect("/");
   }
 
-  const existingEntries = await redis.get(`journal:${session.user.id}`);
+  const existingEntries = await redis.get(`journal:${session.user.email}`);
 
   let entries: JournalEntry[] = [];
 
@@ -55,7 +55,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
 
 export async function addJournalEntry(entry: string) {
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user || !session.user.email) {
     redirect("/");
   }
 
@@ -74,7 +74,10 @@ export async function addJournalEntry(entry: string) {
   const updatedEntries = [newEntry, ...existingEntries];
 
   // Store as JSON string
-  await redis.set(`journal:${session.user.id}`, JSON.stringify(updatedEntries));
+  await redis.set(
+    `journal:${session.user.email}`,
+    JSON.stringify(updatedEntries),
+  );
 
   // Revalidate the journal page to show fresh data
   revalidatePath("/journal");
