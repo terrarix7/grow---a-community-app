@@ -1,6 +1,10 @@
 import React, { Suspense } from "react";
 import { getJournalEntries } from "./action";
 import { JournalForm } from "./date";
+import { ErrorReloadButton } from "./error-button";
+
+// Force dynamic rendering to avoid prerendering issues with auth
+export const dynamic = "force-dynamic";
 
 /**
  * Loading component for the journal entries
@@ -48,31 +52,6 @@ function JournalLoading() {
 }
 
 /**
- * Error component for journal loading failures
- */
-function JournalError({ error }: { error: Error }) {
-  return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center">
-        <div className="mb-4 text-6xl text-red-500">⚠️</div>
-        <h2 className="mb-2 text-xl font-semibold text-gray-900">
-          Failed to load journal entries
-        </h2>
-        <p className="mb-4 text-gray-600">
-          {error.message || "An unexpected error occurred"}
-        </p>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded bg-gray-800 px-4 py-2 text-white transition-colors hover:bg-gray-900"
-        >
-          Try Again
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/**
  * Journal content component that handles data fetching
  */
 async function JournalContent() {
@@ -82,9 +61,20 @@ async function JournalContent() {
   } catch (error) {
     console.error("Error loading journal entries:", error);
     return (
-      <JournalError
-        error={error instanceof Error ? error : new Error("Unknown error")}
-      />
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 text-6xl text-red-500">⚠️</div>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">
+            Failed to load journal entries
+          </h2>
+          <p className="mb-4 text-gray-600">
+            {error instanceof Error
+              ? error.message
+              : "An unexpected error occurred"}
+          </p>
+          <ErrorReloadButton />
+        </div>
+      </div>
     );
   }
 }
