@@ -115,7 +115,7 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
 
   return (
     <div className="relative h-full">
-      <div className="h-full space-y-0 overflow-y-auto pb-32">
+      <div className="h-full space-y-0 overflow-y-auto pb-[80vh]">
         {optimisticEntries.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">

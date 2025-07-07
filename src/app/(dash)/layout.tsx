@@ -20,11 +20,11 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="bg-background flex h-14 items-center gap-4 border-b px-4">
+      <main className="flex flex-1 flex-col">
+        <header className="bg-background sticky top-0 z-10 flex h-14 items-center gap-4 border-b px-4">
           <SidebarTrigger />
         </header>
-        <div className="flex-1 overflow-hidden">{children}</div>
+        <div className="flex-1 overflow-auto">{children}</div>
       </main>
     </SidebarProvider>
   );
@@ -37,24 +37,24 @@ const menuItems = [
     id: "journal",
     href: "/journal",
   },
-  {
-    title: "Team",
-    icon: HelpCircle,
-    id: "team",
-    href: "/team",
-  },
-  {
-    title: "Friends",
-    icon: Smile,
-    id: "friends",
-    href: "/friends",
-  },
-  {
-    title: "AI Friend",
-    icon: Bot,
-    id: "ai-friend",
-    href: "/ai",
-  },
+  // {
+  //   title: "Team",
+  //   icon: HelpCircle,
+  //   id: "team",
+  //   href: "/team",
+  // },
+  // {
+  //   title: "Friends",
+  //   icon: Smile,
+  //   id: "friends",
+  //   href: "/friends",
+  // },
+  // {
+  //   title: "AI Friend",
+  //   icon: Bot,
+  //   id: "ai-friend",
+  //   href: "/ai",
+  // },
 ];
 
 function AppSidebar() {
