@@ -1,26 +1,32 @@
 import React from "react";
 
-import { Hash, HelpCircle, Smile, Bot, Link } from "lucide-react";
+import { Hash, HelpCircle, Smile, Bot } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarInset,
+  SidebarTrigger,
 } from "~/components/ui/sidebar";
 import SignOut from "~/components/sign-out";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <div className="h-screen bg-white">
-        <AppSidebar>{children}</AppSidebar>
-      </div>
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <header className="bg-background flex h-14 items-center gap-4 border-b px-4">
+          <SidebarTrigger />
+        </header>
+        <div className="flex-1 overflow-hidden">{children}</div>
+      </main>
+    </SidebarProvider>
   );
 }
 
@@ -51,39 +57,44 @@ const menuItems = [
   },
 ];
 
-function AppSidebar({ children }: { children: React.ReactNode }) {
+function AppSidebar() {
   return (
-    <div className="h-screen bg-white">
-      <SidebarProvider className="h-full">
-        <Sidebar
-          className="h-full w-64 border-r border-gray-200"
-          collapsible="none"
-        >
-          <SidebarContent className="flex flex-col bg-white">
-            <SidebarGroup className="flex-1">
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {menuItems.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton asChild>
-                        <a href={item.href}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-            <div className="border-t border-gray-200 p-4">
-              <SignOut />
-            </div>
-          </SidebarContent>
-        </Sidebar>
-        <SidebarInset>{children}</SidebarInset>
-      </SidebarProvider>
-    </div>
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <div className="flex items-center gap-2 px-4 py-2">
+          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gray-900 text-white">
+            <Hash className="size-4" />
+          </div>
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-semibold">Grow</span>
+            <span className="truncate text-xs">Personal Growth</span>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.href}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <div className="p-4">
+          <SignOut />
+        </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
 

@@ -12,6 +12,9 @@ const config = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  images: {
+    remotePatterns: [new URL('https://utfs.io/**')],
+  },
 };
 
 export default config;

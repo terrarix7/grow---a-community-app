@@ -1,11 +1,18 @@
 "use client";
 
-import React, { useOptimistic, useRef } from "react";
+import React, { useOptimistic, useRef, useState, useTransition } from "react";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
+import { UploadButton } from "~/lib/uploadthing";
+import { ImageGallery } from "~/components/image-gallery";
+import { Camera } from "lucide-react";
 import { addJournalEntry, type JournalEntry } from "./action";
 
-function ClientDate({ dateTime }: { dateTime: string }) {
+interface ClientDateProps {
+  dateTime: string;
+}
+
+function ClientDate({ dateTime }: ClientDateProps) {
   const date = new Date(dateTime);
   const formattedDate = date.toLocaleDateString("en-US", {
     year: "numeric",
@@ -17,6 +24,7 @@ function ClientDate({ dateTime }: { dateTime: string }) {
     minute: "2-digit",
     hour12: true,
   });
+
   return (
     <div className="w-32 flex-shrink-0">
       <div className="text-sm font-medium text-gray-900">{formattedDate}</div>
@@ -25,15 +33,20 @@ function ClientDate({ dateTime }: { dateTime: string }) {
   );
 }
 
-export function JournalForm({
-  initialEntries,
-}: {
+interface JournalFormProps {
   initialEntries: JournalEntry[];
-}) {
+}
+
+export function JournalForm({ initialEntries }: JournalFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+
   const [optimisticEntries, addOptimisticEntry] = useOptimistic(
     initialEntries,
-    (state, newEntry: JournalEntry) => [newEntry, ...state],
+    (state, newEntry: JournalEntry) => [newEntry, ...state], // Add to beginning since we're sorting newest first
   );
 
   const getCurrentDateTime = () => {
@@ -51,44 +64,87 @@ export function JournalForm({
     return { date, time };
   };
 
-  async function handleSubmit(formData: FormData) {
+  const handleSubmit = async (formData: FormData) => {
     const entry = formData.get("entry") as string;
-    if (!entry.trim()) return;
+
+    // Client-side validation
+    if (!entry?.trim()) {
+      setError("Please enter some text for your journal entry");
+      textareaRef.current?.focus();
+      return;
+    }
+
+    // Clear any previous errors
+    setError(null);
 
     // Create optimistic entry
     const optimisticEntry: JournalEntry = {
       id: crypto.randomUUID(),
       dateTime: new Date().toISOString(),
-      text: entry,
+      text: entry.trim(),
+      images: uploadedImages,
     };
 
-    // Add optimistic entry immediately
-    addOptimisticEntry(optimisticEntry);
+    // Start transition for better UX
+    startTransition(async () => {
+      try {
+        // Add optimistic entry immediately
+        addOptimisticEntry(optimisticEntry);
 
-    // Reset form
-    formRef.current?.reset();
+        // Reset form immediately for better UX
+        formRef.current?.reset();
 
-    // Submit to server
-    await addJournalEntry(entry);
-  }
+        // Submit to server
+        await addJournalEntry(entry, uploadedImages);
+
+        // Clear uploaded images after successful submission
+        setUploadedImages([]);
+      } catch (error) {
+        // Handle error - in a real app you might want to remove the optimistic entry
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to add entry";
+        setError(errorMessage);
+
+        // Restore the text in the form if there was an error
+        if (textareaRef.current) {
+          textareaRef.current.value = entry;
+        }
+      }
+    });
+  };
 
   return (
-    <div>
-      <div className="space-y-0 pb-32">
-        {optimisticEntries.map((entry) => (
-          <div
-            key={entry.id}
-            className="flex gap-6 border-t border-b border-gray-200 p-6"
-          >
-            <ClientDate dateTime={entry.dateTime} />
-            <div className="flex-1">
-              <p className="leading-relaxed text-gray-900">{entry.text}</p>
+    <div className="relative h-full">
+      <div className="h-full space-y-0 overflow-y-auto pb-32">
+        {optimisticEntries.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <p className="text-lg text-gray-500">No journal entries yet</p>
+              <p className="mt-2 text-sm text-gray-400">
+                Start writing your first entry below
+              </p>
             </div>
           </div>
-        ))}
+        ) : (
+          optimisticEntries.map((entry) => (
+            <div
+              key={entry.id}
+              className="flex gap-6 border-t border-b border-gray-200 p-6 transition-colors hover:bg-gray-50"
+            >
+              <ClientDate dateTime={entry.dateTime} />
+              <div className="flex-1">
+                <p className="leading-relaxed whitespace-pre-wrap text-gray-900">
+                  {entry.text}
+                </p>
+                <ImageGallery images={entry.images || []} />
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      <div className="fixed right-0 bottom-0 left-64 border-t border-gray-200 bg-white p-6">
+      {/* Fixed form at bottom */}
+      <div className="fixed right-0 bottom-0 left-0 ml-[var(--sidebar-width)] border-t border-gray-200 bg-white p-6 shadow-lg transition-[margin-left] duration-200 ease-linear group-data-[state=collapsed]/sidebar-wrapper:ml-[var(--sidebar-width-icon)]">
         <form ref={formRef} action={handleSubmit} className="flex gap-6">
           <div className="w-32 flex-shrink-0">
             <div className="text-sm font-medium text-gray-900">
@@ -99,18 +155,80 @@ export function JournalForm({
             </div>
           </div>
           <div className="flex-1 space-y-3">
-            <Textarea
-              name="entry"
-              placeholder="What's on your mind today?"
-              className="min-h-[100px] w-full resize-none border-gray-300 bg-white focus:border-gray-500 focus:ring-gray-200"
-              required
-            />
-            <Button
-              type="submit"
-              className="bg-gray-800 text-white hover:bg-gray-900"
-            >
-              Add Entry
-            </Button>
+            <div>
+              <Textarea
+                ref={textareaRef}
+                name="entry"
+                placeholder="What's on your mind today?"
+                className="min-h-[100px] w-full resize-none border-gray-300 bg-white focus:border-gray-500 focus:ring-gray-200"
+                disabled={isPending}
+                required
+                minLength={1}
+                maxLength={5000}
+              />
+
+              {/* Image previews */}
+              {uploadedImages.length > 0 && (
+                <div className="mt-3">
+                  <ImageGallery images={uploadedImages} />
+                  <button
+                    type="button"
+                    onClick={() => setUploadedImages([])}
+                    className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Clear images
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <p className="mt-2 text-sm text-red-600" role="alert">
+                  {error}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  type="submit"
+                  className="bg-gray-800 text-white hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isPending}
+                >
+                  {isPending ? "Adding..." : "Add Entry"}
+                </Button>
+
+                <UploadButton
+                  endpoint="imageUploader"
+                  onClientUploadComplete={(res) => {
+                    const newImages = res.map((file) => file.url);
+                    setUploadedImages((prev) => [...prev, ...newImages]);
+                  }}
+                  onUploadError={(error: Error) => {
+                    setError(`Upload failed: ${error.message}`);
+                  }}
+                  appearance={{
+                    button:
+                      "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 text-sm px-3 py-2 rounded-md transition-colors",
+                    allowedContent: "text-xs text-gray-500",
+                  }}
+                  content={{
+                    button: (
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-4 w-4" />
+                        Add Images
+                      </div>
+                    ),
+                  }}
+                />
+              </div>
+
+              {isPending && (
+                <div className="flex items-center text-sm text-gray-500">
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                  Saving...
+                </div>
+              )}
+            </div>
           </div>
         </form>
       </div>

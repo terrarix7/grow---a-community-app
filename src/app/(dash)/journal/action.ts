@@ -1,84 +1,163 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { auth } from "~/server/auth";
-import { Redis } from "@upstash/redis";
 import { revalidatePath } from "next/cache";
+import { auth } from "~/server/auth";
+import { JournalService, type JournalEntry } from "~/lib/journal-service";
 
-const redis = Redis.fromEnv();
+// Re-export the type for convenience
+export type { JournalEntry };
 
-export type JournalEntry = {
-  id: string;
-  dateTime: string;
-  text: string;
-};
-
+/**
+ * Retrieves all journal entries for the authenticated user
+ */
 export async function getJournalEntries(): Promise<JournalEntry[]> {
   const session = await auth();
-  if (!session?.user || !session.user.email) {
+  if (!session?.user?.email) {
     redirect("/");
   }
 
-  const existingEntries = await redis.get(`journal:${session.user.email}`);
-
-  let entries: JournalEntry[] = [];
-
-  if (existingEntries) {
-    // Handle both string and object responses from Redis
-    if (typeof existingEntries === "string") {
-      try {
-        entries = JSON.parse(existingEntries);
-      } catch (error) {
-        console.error("Error parsing journal entries:", error);
-        entries = [];
-      }
-    } else if (Array.isArray(existingEntries)) {
-      entries = existingEntries;
-    } else {
-      console.error("Unexpected data type from Redis:", typeof existingEntries);
-      entries = [];
-    }
+  try {
+    return await JournalService.getEntries(session.user.email);
+  } catch (error) {
+    console.error("Failed to get journal entries:", error);
+    // Return empty array for graceful error handling
+    return [];
   }
-
-  // Ensure all entries have required fields and add IDs if missing
-  entries = entries.map((entry, index) => ({
-    id: entry.id || `entry-${Date.now()}-${index}`,
-    dateTime: entry.dateTime || new Date().toISOString(),
-    text: entry.text || "",
-  }));
-
-  // Sort entries by date (oldest first)
-  return entries.sort(
-    (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
-  );
 }
 
-export async function addJournalEntry(entry: string) {
+/**
+ * Adds a new journal entry for the authenticated user
+ */
+export async function addJournalEntry(
+  text: string,
+  images: string[] = [],
+): Promise<void> {
   const session = await auth();
-  if (!session?.user || !session.user.email) {
+  if (!session?.user?.email) {
     redirect("/");
   }
 
-  const now = new Date();
-  const currentDateTime = now.toISOString();
+  if (!text.trim()) {
+    throw new Error("Entry text cannot be empty");
+  }
 
-  // Get existing entries using the same method
-  const existingEntries = await getJournalEntries();
+  try {
+    await JournalService.addEntry(session.user.email, text, images);
+    revalidatePath("/journal");
+  } catch (error) {
+    console.error("Failed to add journal entry:", error);
+    throw new Error("Failed to add journal entry. Please try again.");
+  }
+}
 
-  const newEntry: JournalEntry = {
-    id: crypto.randomUUID(),
-    dateTime: currentDateTime,
-    text: entry,
-  };
+/**
+ * Updates an existing journal entry for the authenticated user
+ */
+export async function updateJournalEntry(
+  entryId: string,
+  text: string,
+): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.email) {
+    redirect("/");
+  }
 
-  const updatedEntries = [newEntry, ...existingEntries];
+  if (!text.trim()) {
+    throw new Error("Entry text cannot be empty");
+  }
 
-  // Store as JSON string
-  await redis.set(
-    `journal:${session.user.email}`,
-    JSON.stringify(updatedEntries),
-  );
+  try {
+    const updatedEntry = await JournalService.updateEntry(
+      session.user.email,
+      entryId,
+      text,
+    );
 
-  // Revalidate the journal page to show fresh data
-  revalidatePath("/journal");
+    if (!updatedEntry) {
+      throw new Error("Entry not found");
+    }
+
+    revalidatePath("/journal");
+  } catch (error) {
+    console.error("Failed to update journal entry:", error);
+    throw new Error("Failed to update journal entry. Please try again.");
+  }
+}
+
+/**
+ * Deletes a journal entry for the authenticated user
+ */
+export async function deleteJournalEntry(entryId: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.email) {
+    redirect("/");
+  }
+
+  try {
+    const deleted = await JournalService.deleteEntry(
+      session.user.email,
+      entryId,
+    );
+
+    if (!deleted) {
+      throw new Error("Entry not found");
+    }
+
+    revalidatePath("/journal");
+  } catch (error) {
+    console.error("Failed to delete journal entry:", error);
+    throw new Error("Failed to delete journal entry. Please try again.");
+  }
+}
+
+/**
+ * Adds images to an existing journal entry for the authenticated user
+ */
+export async function addImagesToJournalEntry(
+  entryId: string,
+  images: string[],
+): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.email) {
+    redirect("/");
+  }
+
+  if (!images.length) {
+    throw new Error("No images provided");
+  }
+
+  try {
+    const updatedEntry = await JournalService.addImagesToEntry(
+      session.user.email,
+      entryId,
+      images,
+    );
+
+    if (!updatedEntry) {
+      throw new Error("Entry not found");
+    }
+
+    revalidatePath("/journal");
+  } catch (error) {
+    console.error("Failed to add images to journal entry:", error);
+    throw new Error("Failed to add images to journal entry. Please try again.");
+  }
+}
+
+/**
+ * Gets the total count of journal entries for the authenticated user
+ */
+export async function getJournalEntriesCount(): Promise<number> {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return 0;
+  }
+
+  try {
+    return await JournalService.getEntriesCount(session.user.email);
+  } catch (error) {
+    console.error("Failed to get journal entries count:", error);
+    return 0;
+  }
 }
