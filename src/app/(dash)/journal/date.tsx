@@ -5,7 +5,7 @@ import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import { UploadButton } from "~/lib/uploadthing";
 import { ImageGallery } from "~/components/image-gallery";
-import { Camera } from "lucide-react";
+import { Camera, ArrowRight, Loader2 } from "lucide-react";
 import { addJournalEntry, type JournalEntry } from "./action";
 
 interface ClientDateProps {
@@ -167,36 +167,31 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
                 maxLength={5000}
               />
 
-              {/* Image previews */}
-              {uploadedImages.length > 0 && (
-                <div className="mt-3">
-                  <ImageGallery images={uploadedImages} />
-                  <button
-                    type="button"
-                    onClick={() => setUploadedImages([])}
-                    className="mt-2 text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    Clear images
-                  </button>
-                </div>
-              )}
-
               {error && (
                 <p className="mt-2 text-sm text-red-600" role="alert">
                   {error}
                 </p>
               )}
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Button
-                  type="submit"
-                  className="bg-gray-800 text-white hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={isPending}
-                >
-                  {isPending ? "Adding..." : "Add Entry"}
-                </Button>
+            <div className="flex items-center justify-between gap-3">
+              {/* Image previews on the left side */}
+              <div className="flex-1">
+                {uploadedImages.length > 0 && (
+                  <div>
+                    <ImageGallery images={uploadedImages} />
+                    <button
+                      type="button"
+                      onClick={() => setUploadedImages([])}
+                      className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Clear images
+                    </button>
+                  </div>
+                )}
+              </div>
 
+              {/* Buttons on the right side */}
+              <div className="flex items-center gap-3">
                 <UploadButton
                   endpoint="imageUploader"
                   onClientUploadComplete={(res) => {
@@ -208,8 +203,8 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
                   }}
                   appearance={{
                     button:
-                      "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 text-sm px-3 py-2 rounded-md transition-colors",
-                    allowedContent: "text-xs text-gray-500",
+                      "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 text-sm px-3 py-2 rounded-md transition-colors",
+                    allowedContent: "hidden",
                   }}
                   content={{
                     button: (
@@ -220,14 +215,19 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
                     ),
                   }}
                 />
-              </div>
 
-              {isPending && (
-                <div className="flex items-center text-sm text-gray-500">
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                  Saving...
-                </div>
-              )}
+                <Button
+                  type="submit"
+                  className="bg-gray-800 p-3 text-white hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </form>

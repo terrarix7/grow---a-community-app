@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Hash, HelpCircle, Smile, Bot } from "lucide-react";
+import { Hash, HelpCircle, Smile, Bot, Image, ImageIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +37,18 @@ const menuItems = [
     id: "journal",
     href: "/journal",
   },
+  {
+    title: "Gallery",
+    icon: ImageIcon,
+    id: "gallery",
+    href: "/gallery",
+  },
+  // {
+  //   title: "Team",
+  //   icon: HelpCircle,
+  //   id: "team",
+  //   href: "/team",
+  // },
   // {
   //   title: "Team",
   //   icon: HelpCircle,

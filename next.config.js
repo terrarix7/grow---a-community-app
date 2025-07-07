@@ -13,7 +13,18 @@ const config = {
     ignoreDuringBuilds: true,
   },
   images: {
-    remotePatterns: [new URL('https://utfs.io/**')],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'utfs.io',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'eunawfss6a.ufs.sh',
+        pathname: '/**',
+      },
+    ],
   },
 };
 
