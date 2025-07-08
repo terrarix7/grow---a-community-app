@@ -3,12 +3,6 @@ import { getJournalEntries } from "./action";
 import { JournalForm } from "./date";
 import { ErrorReloadButton } from "./error-button";
 
-// Force dynamic rendering to avoid prerendering issues with auth
-export const dynamic = "force-dynamic";
-
-/**
- * Loading component for the journal entries
- */
 function JournalLoading() {
   return (
     <div className="flex h-full flex-col">
@@ -55,11 +49,9 @@ function JournalLoading() {
  * Journal content component that handles data fetching
  */
 async function JournalContent() {
-  try {
-    const entries = await getJournalEntries();
-    return <JournalForm initialEntries={entries} />;
-  } catch (error) {
-    console.error("Error loading journal entries:", error);
+  const { entries, error } = await getJournalEntries();
+
+  if (error) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
@@ -68,15 +60,15 @@ async function JournalContent() {
             Failed to load journal entries
           </h2>
           <p className="mb-4 text-gray-600">
-            {error instanceof Error
-              ? error.message
-              : "An unexpected error occurred"}
+            An unexpected error occurred while loading your journal entries
           </p>
           <ErrorReloadButton />
         </div>
       </div>
     );
   }
+
+  return <JournalForm initialEntries={entries} />;
 }
 
 /**

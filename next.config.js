@@ -12,9 +12,6 @@ const config = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    ppr: true,
-  },
   images: {
     remotePatterns: [
       {

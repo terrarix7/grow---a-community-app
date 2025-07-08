@@ -11,18 +11,22 @@ export type { JournalEntry };
 /**
  * Retrieves all journal entries for the authenticated user
  */
-export async function getJournalEntries(): Promise<JournalEntry[]> {
+export async function getJournalEntries(): Promise<{
+  entries: JournalEntry[];
+  error: boolean;
+}> {
   const session = await auth();
   if (!session?.user?.email) {
     redirect("/");
   }
 
   try {
-    return await JournalService.getEntries(session.user.email);
+    const entries = await JournalService.getEntries(session.user.email);
+    return { entries, error: false };
   } catch (error) {
     console.error("Failed to get journal entries:", error);
     // Return empty array for graceful error handling
-    return [];
+    return { entries: [], error: true };
   }
 }
 

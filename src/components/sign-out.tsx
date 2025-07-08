@@ -1,5 +1,7 @@
+import { LogOut } from "lucide-react";
 import { signOut } from "~/server/auth";
 import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function SignOut() {
   const handleSignOut = async () => {
@@ -9,9 +11,19 @@ function SignOut() {
 
   return (
     <form action={handleSignOut}>
-      <Button variant="link" type="submit">
-        Sign Out
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            className="hover:cursor-pointer"
+            variant="link"
+            type="submit"
+            size="icon"
+          >
+            <LogOut className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">Sign out</TooltipContent>
+      </Tooltip>
     </form>
   );
 }

@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Hash, HelpCircle, Smile, Bot, Image, ImageIcon } from "lucide-react";
+import { ImageIcon, PenLine } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,18 +12,20 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarTrigger,
 } from "~/components/ui/sidebar";
 import SignOut from "~/components/sign-out";
+import Image from "next/image";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <main className="flex flex-1 flex-col">
-        <header className="bg-background sticky top-0 z-10 flex h-14 items-center gap-4 border-b px-4">
-          <SidebarTrigger />
-        </header>
         <div className="flex-1 overflow-auto">{children}</div>
       </main>
     </SidebarProvider>
@@ -33,7 +35,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 const menuItems = [
   {
     title: "Journal",
-    icon: Hash,
+    icon: PenLine,
     id: "journal",
     href: "/journal",
   },
@@ -73,14 +75,8 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gray-900 text-white">
-            <Hash className="size-4" />
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">Grow</span>
-            <span className="truncate text-xs">Personal Growth</span>
-          </div>
+        <div className="flex aspect-square size-8 items-center justify-center rounded-lg border border-gray-200 bg-white">
+          <Image src="/logo.svg" alt="logo" width={24} height={24} />
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -88,23 +84,26 @@ function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.href}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <Tooltip key={item.id}>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton asChild>
+                        <a href={item.href}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.title}</TooltipContent>
+                </Tooltip>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="p-4">
-          <SignOut />
-        </div>
+        <SignOut />
       </SidebarFooter>
     </Sidebar>
   );

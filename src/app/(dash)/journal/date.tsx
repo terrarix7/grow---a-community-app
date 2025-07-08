@@ -144,7 +144,7 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
       </div>
 
       {/* Fixed form at bottom */}
-      <div className="fixed right-0 bottom-0 left-0 ml-[var(--sidebar-width)] border-t border-gray-200 bg-white p-6 shadow-lg transition-[margin-left] duration-200 ease-linear group-data-[state=collapsed]/sidebar-wrapper:ml-[var(--sidebar-width-icon)]">
+      <div className="fixed right-0 bottom-0 left-0 ml-[var(--sidebar-width-icon)] border-t border-gray-200 bg-white p-6 shadow-lg transition-[margin-left] duration-200 ease-linear group-data-[state=collapsed]/sidebar-wrapper:ml-[var(--sidebar-width-icon)]">
         <form ref={formRef} action={handleSubmit} className="flex gap-6">
           <div className="w-32 flex-shrink-0">
             <div className="text-sm font-medium text-gray-900">
