@@ -6,6 +6,7 @@ import { Geist } from "next/font/google";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "~/app/api/uploadthing/core";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Grow - Personal Growth Journal",
@@ -27,6 +28,11 @@ export default function RootLayout({
       <body>
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         {children}
+        <Script
+          defer
+          src="https://assets.onedollarstats.com/stonks.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
