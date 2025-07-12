@@ -45,30 +45,6 @@ const menuItems = [
     id: "gallery",
     href: "/gallery",
   },
-  // {
-  //   title: "Team",
-  //   icon: HelpCircle,
-  //   id: "team",
-  //   href: "/team",
-  // },
-  // {
-  //   title: "Team",
-  //   icon: HelpCircle,
-  //   id: "team",
-  //   href: "/team",
-  // },
-  // {
-  //   title: "Friends",
-  //   icon: Smile,
-  //   id: "friends",
-  //   href: "/friends",
-  // },
-  // {
-  //   title: "AI Friend",
-  //   icon: Bot,
-  //   id: "ai-friend",
-  //   href: "/ai",
-  // },
 ];
 
 function AppSidebar() {
@@ -76,7 +52,7 @@ function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex aspect-square size-8 items-center justify-center rounded-lg border border-gray-200 bg-white">
-          <Image src="/logo.svg" alt="logo" width={24} height={24} />
+          <img src="/logo.svg" alt="logo" width={24} height={24} />
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -102,9 +78,9 @@ function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      {/* <SidebarFooter>
         <SignOut />
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 }

@@ -12,32 +12,57 @@ import {
 import { cn } from "~/lib/utils";
 import { Skeleton } from "~/components/ui/skeleton";
 
+interface JournalEntry {
+  id: string;
+  dateTime: string;
+  text: string;
+  images?: string[];
+}
+
 interface GalleryClientProps {
   className?: string;
 }
 
-export function GalleryClient({ className }: GalleryClientProps) {
+const STORAGE_KEY = "journal-entries";
+
+const getEntriesFromStorage = (): JournalEntry[] => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.warn("Failed to load from localStorage:", error);
+    return [];
+  }
+};
+
+function GalleryClient({ className }: GalleryClientProps) {
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const loadImages = () => {
       try {
-        const response = await fetch("/api/images");
-        if (!response.ok) {
-          throw new Error("Failed to fetch images");
-        }
-        const data = await response.json();
-        setImages(data.images || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load images");
+        const entries = getEntriesFromStorage();
+        const allImages: string[] = [];
+
+        // Extract all images from all journal entries
+        entries.forEach((entry) => {
+          if (entry.images && entry.images.length > 0) {
+            allImages.push(...entry.images);
+          }
+        });
+
+        setImages(allImages);
+      } catch (error) {
+        console.warn("Failed to load images:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchImages();
+    loadImages();
   }, []);
 
   if (loading) {
@@ -53,38 +78,6 @@ export function GalleryClient({ className }: GalleryClientProps) {
               <Skeleton className="h-full w-full rounded-lg" />
             </div>
           ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={cn("container mx-auto px-4 py-8", className)}>
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold text-gray-900">Gallery</h1>
-          <p className="text-gray-600">Your uploaded images</p>
-        </div>
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="mb-4 text-red-500">
-            <svg
-              className="mx-auto h-16 w-16"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">
-            Failed to load images
-          </h3>
-          <p className="text-center text-gray-600">{error}</p>
         </div>
       </div>
     );
@@ -117,7 +110,8 @@ export function GalleryClient({ className }: GalleryClientProps) {
             No images found
           </h3>
           <p className="text-center text-gray-600">
-            Upload some images to see them here in your gallery
+            Upload some images in your journal entries to see them here in your
+            gallery
           </p>
         </div>
       </div>
@@ -166,4 +160,8 @@ export function GalleryClient({ className }: GalleryClientProps) {
       </div>
     </div>
   );
+}
+
+export default function GalleryPage() {
+  return <GalleryClient />;
 }

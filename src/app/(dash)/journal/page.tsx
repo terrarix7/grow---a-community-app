@@ -1,42 +1,48 @@
 "use client";
 
 import React from "react";
-import useSWR, { mutate } from "swr";
-import { ErrorReloadButton } from "./error-button";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
-import { UploadButton } from "~/lib/uploadthing";
 import { ImageGallery } from "~/components/image-gallery";
 import { Camera, ArrowRight, Loader2 } from "lucide-react";
 
 const STORAGE_KEY = "journal-entries";
 
-const fetcher = async (url: string) => {
-  const response = await fetch(url);
-  const data = await response.json();
+export interface JournalEntry {
+  id: string;
+  dateTime: string;
+  text: string;
+  images?: string[];
+}
 
-  if (data && !data.error) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.warn("Failed to save to localStorage:", error);
-    }
-  }
-
-  return data;
-};
-
-const getInitialData = () => {
-  if (typeof window === "undefined") return null;
+const getEntriesFromStorage = (): JournalEntry[] => {
+  if (typeof window === "undefined") return [];
 
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    return stored ? JSON.parse(stored) : [];
   } catch (error) {
     console.warn("Failed to load from localStorage:", error);
-    return null;
+    return [];
   }
+};
+
+const saveEntriesToStorage = (entries: JournalEntry[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  } catch (error) {
+    console.warn("Failed to save to localStorage:", error);
+  }
+};
+
+const convertFileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 };
 
 function JournalLoading() {
@@ -84,64 +90,36 @@ function JournalLoading() {
   );
 }
 
-function JournalContent() {
-  const initialData = getInitialData();
+export default function JournalPage() {
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data, error, isLoading } = useSWR("/api/entries", fetcher, {
-    fallbackData: initialData,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  });
+  useEffect(() => {
+    const loadedEntries = getEntriesFromStorage();
+    setEntries(loadedEntries);
+    setIsLoading(false);
+  }, []);
 
-  if (isLoading && !initialData) {
+  if (isLoading) {
     return <JournalLoading />;
   }
 
-  if (error || data?.error) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-6xl text-red-500">⚠️</div>
-          <h2 className="mb-2 text-xl font-semibold text-gray-900">
-            Failed to load journal entries
-          </h2>
-          <p className="mb-4 text-gray-600">
-            An unexpected error occurred while loading your journal entries
-          </p>
-          <ErrorReloadButton />
-        </div>
-      </div>
-    );
-  }
-
-  return <JournalForm initialEntries={data?.entries || []} />;
+  return <JournalForm entries={entries} setEntries={setEntries} />;
 }
 
-export default function JournalPage() {
-  return (
-    // <div className="flex h-full flex-col">
-    <JournalContent />
-    // </div>
-  );
-}
-
-export interface JournalEntry {
-  id: string;
-  dateTime: string;
-  text: string;
-  images?: string[];
-}
 interface JournalFormProps {
-  initialEntries: JournalEntry[];
+  entries: JournalEntry[];
+  setEntries: React.Dispatch<React.SetStateAction<JournalEntry[]>>;
 }
 
-export function JournalForm({ initialEntries }: JournalFormProps) {
+export function JournalForm({ entries, setEntries }: JournalFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [entries, setEntries] = useState<JournalEntry[]>(initialEntries);
+  const [isUploading, setIsUploading] = useState(false);
 
   const getCurrentDateTime = () => {
     const now = new Date();
@@ -177,6 +155,44 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
     {} as Record<string, JournalEntry[]>,
   );
 
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const imagePromises = Array.from(files).map(async (file) => {
+        if (!file.type.startsWith("image/")) {
+          throw new Error(`${file.name} is not an image file`);
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          // 5MB limit
+          throw new Error(`${file.name} is too large. Maximum size is 5MB`);
+        }
+
+        return await convertFileToBase64(file);
+      });
+
+      const base64Images = await Promise.all(imagePromises);
+      setUploadedImages((prev) => [...prev, ...base64Images]);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload images";
+      setError(errorMessage);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -195,25 +211,7 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Submit to server
-      const response = await fetch("/api/entries", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: entry.trim(),
-          images: uploadedImages,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to add entry");
-      }
-
-      // Create new entry for immediate UI update
+      // Create new entry
       const newEntry: JournalEntry = {
         id: crypto.randomUUID(),
         dateTime: new Date().toISOString(),
@@ -222,14 +220,15 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
       };
 
       // Add to beginning of entries array (newest first)
-      setEntries((prev) => [newEntry, ...prev]);
+      const updatedEntries = [newEntry, ...entries];
+      setEntries(updatedEntries);
+
+      // Save to localStorage
+      saveEntriesToStorage(updatedEntries);
 
       // Reset form
       formRef.current?.reset();
       setUploadedImages([]);
-
-      // Revalidate SWR cache to sync with server
-      mutate("/api/entries");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to add entry";
@@ -300,32 +299,27 @@ export function JournalForm({ initialEntries }: JournalFormProps) {
 
             {/* Buttons at bottom left */}
             <div className="flex items-center gap-3">
-              <UploadButton
-                endpoint="imageUploader"
-                onClientUploadComplete={(res) => {
-                  const newImages = res.map((file) => file.url);
-                  setUploadedImages((prev) => [...prev, ...newImages]);
-                }}
-                onUploadError={(error: Error) => {
-                  setError(`Upload failed: ${error.message}`);
-                }}
-                appearance={{
-                  button:
-                    "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 p-3 rounded-md transition-colors w-auto min-w-0",
-                  allowedContent: "hidden",
-                }}
-                content={{
-                  button: ({ isUploading }) => (
-                    <div className="flex items-center justify-center">
-                      {isUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Camera className="h-4 w-4" />
-                      )}
-                    </div>
-                  ),
-                }}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={isUploading}
               />
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-md border border-gray-300 bg-white p-3 text-gray-700 transition-colors hover:bg-gray-50"
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+              </Button>
 
               <Button
                 type="submit"

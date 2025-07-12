@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -25,12 +24,10 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
         <Dialog key={index}>
           <DialogTrigger asChild>
             <button className="relative h-12 w-12 overflow-hidden rounded-md border border-gray-200 transition-colors hover:border-gray-300 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none">
-              <Image
+              <img
                 src={imageUrl}
                 alt={`Attached image ${index + 1}`}
-                fill
-                className="object-cover"
-                sizes="48px"
+                className="h-full w-full object-cover"
               />
             </button>
           </DialogTrigger>
@@ -39,13 +36,10 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
               <DialogTitle>Image Preview</DialogTitle>
             </DialogHeader>
             <div className="relative max-h-[70vh] w-full overflow-hidden rounded-lg">
-              <Image
+              <img
                 src={imageUrl}
                 alt="Full size preview"
-                width={800}
-                height={600}
                 className="h-auto max-h-[70vh] w-full object-contain"
-                priority
               />
             </div>
           </DialogContent>
